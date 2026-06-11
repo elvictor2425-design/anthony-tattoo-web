@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control | Anthony Tattoo</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --gold: #d4af37;
+            --dark: #0a0a0a;
+            --text: #e0e0e0;
+            --danger: #ff4444;
+            --success: #25D366;
+        }
+
+        body {
+            background-color: var(--dark);
+            color: var(--text);
+            font-family: 'Montserrat', sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 2px solid var(--gold);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'UnifrakturMaguntia', cursive;
+            color: var(--gold);
+            font-size: 3rem;
+            margin: 0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--gold);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .info h3 { margin: 0; font-size: 1.4rem; color: #fff; }
+        .info p { margin: 5px 0; color: #aaa; font-size: 0.9rem; }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-decoration: none;
+        }
+
+        .btn-whatsapp {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-whatsapp:hover { background-color: #1eb956; transform: scale(1.05); }
+
+        .btn-delete {
+            background-color: rgba(255, 68, 68, 0.1);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .btn-delete:hover { background-color: var(--danger); color: white; }
+
+        .empty-msg {
+            text-align: center;
+            padding: 50px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .client-thumb {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid var(--gold);
+            margin-right: 15px;
+        }
+
+        .flex-row { display: flex; align-items: center; }
+
+        @media (max-width: 600px) {
+            .card { flex-direction: column; align-items: flex-start; }
+            .actions { margin-top: 15px; width: 100%; justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Administrador Anthony</h1>
+    <p style="color: var(--gold); letter-spacing: 2px;">GESTIÓN DE CITAS Y AVISOS</p>
+</header>
+
+<div class="container">
+    <div id="list">
+        <div class="empty-msg">Cargando citas...</div>
+    </div>
+</div>
+
+<script>
+    // CONFIGURACIÓN FIREBASE
+    const fbConfig = { databaseURL: "https://pagina-de-tattooo-default-rtdb.firebaseio.com" };
+    firebase.initializeApp(fbConfig);
+    const rtdb = firebase.database();
+
+    // Sincronización en tiempo real
+    rtdb.ref('citas').on('value', (snapshot) => {
+        const data = snapshot.val();
+        const listDiv = document.getElementById('list');
+        
+        if (!data) {
+            listDiv.innerHTML = '<div class="empty-msg">No hay citas pendientes.</div>';
+            return;
+        }
+
+        let html = '';
+        Object.keys(data).reverse().forEach(key => {
+            const cita = data[key];
+            const fechaFormateada = cita.d.split('-').reverse().join('/');
+            
+            html += `
+                <div class="card">
+                    <div class="flex-row">
+                        ${cita.i ? `<img src="${cita.i}" class="client-thumb">` : ''}
+                        <div class="info">
+                            <h3>${cita.n}</h3>
+                            <p>📅 ${fechaFormateada} | ⏰ ${cita.t} hs</p>
+                            <p>📞 WhatsApp: ${cita.h || 'Sin teléfono'}</p>
+                            ${cita.p ? `<a href="${cita.p}" target="_blank" style="color:var(--gold); font-size:0.75rem; text-decoration:underline; display:block; margin-top:5px;">Ver Diseño en Pinterest 📌</a>` : ''}
+                        </div>
+                    </div>
+                    <div class="actions">
+                        ${cita.h ? `
+                            <a href="https://wa.me/${cita.h}?text=Hola%20${encodeURIComponent(cita.n)},%20soy%20Anthony%20Tattoo.%20Ya%20puedes%20venir%20al%20estudio%20para%20tu%20sesi%C3%B3n!%20%F0%9F%94%A5" 
+                               target="_blank" class="btn btn-whatsapp">
+                                📩 Avisar
+                            </a>
+                        ` : ''}
+                        <button onclick="borrarCita('${key}')" class="btn btn-delete">Quitar</button>
+                    </div>
+                </div>
+            `;
+        });
+        listDiv.innerHTML = html;
+    });
+
+    function borrarCita(id) {
+        if(confirm('¿Estás seguro de quitar esta cita?')) {
+            rtdb.ref('citas/' + id).remove()
+                .then(() => alert('Cita eliminada correctamente.'))
+                .catch(err => alert('Error al eliminar: ' + err));
+        }
+    }
+</script>
+
+</body>
+</html>
